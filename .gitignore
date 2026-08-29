@@ -1,0 +1,35 @@
+# --- Gradle ---
+.gradle/
+build/
+# Keep the wrapper jar/scripts tracked (do NOT ignore gradle/wrapper/*)
+
+# --- Java ---
+*.class
+*.log
+hs_err_pid*
+replay_pid*
+
+# --- IDEs ---
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+out/
+bin/
+
+# --- Test server (if you drop one here to test the jar) ---
+run/
+server/
+*.jar.bak
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Internal docs (not part of the repo) ---
+skill.md

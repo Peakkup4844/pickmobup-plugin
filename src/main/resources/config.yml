@@ -1,0 +1,94 @@
+# ===========================================================================
+#  PickMobUp - config.yml
+#  ทุกข้อความใช้รหัสสี & (เช่น &a, &c) ปรับข้อความได้ที่ lang.yml
+# ===========================================================================
+
+# โหมดการอุ้ม:
+#   PASSENGER = ใช้กลไก vanilla (entity นั่งบนหัวจริง) — แนะนำ, ไม่ต้องพึ่งปลั๊กอินเสริม
+#   PACKET    = แสดงผลด้วย packet (ต้องติดตั้งปลั๊กอิน PacketEvents) ถ้าไม่มีจะ fallback เป็น PASSENGER
+mount-mode: PASSENGER
+
+# ปิด AI ของ mob ระหว่างถูกอุ้ม (กันดิ้น/เดินหนี)
+disable-ai-while-carried: true
+
+# ทำให้ mob ไร้เทียมทานระหว่างถูกอุ้ม
+invulnerable-while-carried: true
+
+# ตัวกรองชนิด entity ที่อุ้มได้
+entity-filter:
+  # WHITELIST = อุ้มได้เฉพาะที่อยู่ใน list
+  # BLACKLIST = อุ้มได้ทุกอย่าง ยกเว้นที่อยู่ใน list
+  mode: BLACKLIST
+  list:
+    - WARDEN
+    - ENDER_DRAGON
+    - WITHER
+
+# อุ้มผู้เล่นด้วยกันได้หรือไม่ (ผู้อุ้มต้องมีสิทธิ์ pickmobup.carryplayers ด้วย)
+allow-carry-players: false
+
+# โลกที่อนุญาตให้ใช้งาน (เว้นว่าง = ทุกโลก)
+allowed-worlds: []
+# ตัวอย่าง:
+# allowed-worlds:
+#   - world
+#   - world_nether
+
+# การควบคุม
+controls:
+  # ขณะอุ้มอยู่: แตะ shift แล้วปล่อยภายใน X มิลลิวินาที = วางลง
+  #             กด shift ค้างนานกว่านั้น = เริ่มชาร์จพลังโยน
+  sneak-tap-threshold-ms: 250
+
+# การโยน
+throw:
+  enabled: true
+  # แรง/ระยะสูงสุดเมื่อชาร์จเต็ม (หน่วยโดยประมาณ = บล็อค)
+  max-power-blocks: 30
+  # ตัวคูณความเร็วต่อบล็อค (ปรับความแรงรวมของการโยน)
+  velocity-per-block: 0.12
+  # เพิ่มแรงพุ่งขึ้นเล็กน้อยให้เป็นโค้งแบบสลิงช็อต
+  upward-boost: 0.2
+  # ติดสถานะ Slow Falling จนกว่าจะแตะพื้น
+  slow-falling: true
+  # เวลาสูงสุด (tick) ที่ Slow Falling จะอยู่ได้ ถ้ายังไม่แตะพื้น (กันค้างถาวร)
+  slow-falling-max-ticks: 600
+  charge:
+    # จำนวน tick ต่อ 1 รอบของหลอด (ขึ้นจนเต็มแล้วลงจนหมด)
+    cycle-ticks: 40
+    # ความถี่ในการอัปเดต actionbar (tick)
+    update-ticks: 2
+    # จำนวนช่องของหลอดพลัง (ยิ่งมาก หลอดยิ่งยาว/ใหญ่ขึ้นบน actionbar)
+    bar-segments: 30
+
+# เสียงประกอบ (ใช้ resource key ของ Minecraft, เว้นว่างเพื่อปิดเสียงนั้น)
+sounds:
+  pickup: "entity.item.pickup"
+  place: "block.wool.place"
+  throw: "entity.snowball.throw"
+
+# การแสดงข้อความ
+messages:
+  # ช่องทางแสดงข้อความ feedback ทั่วไป (อุ้ม/วาง/โยน/แจ้งเตือน)
+  #   CHAT      = ข้อความในแชต
+  #   ACTIONBAR = เหนือช่องไอเทม
+  #   BOSSBAR   = แถบบอสด้านบนจอ (หายเองตามเวลาที่ตั้ง)
+  #   NONE      = ไม่แสดง
+  output: CHAT
+  # ช่องทางแสดงหลอด charge ตอนกด shift ค้าง (ACTIONBAR / BOSSBAR / NONE)
+  # ถ้าตั้งเป็น CHAT จะใช้ ACTIONBAR แทน (เพราะหลอดอัปเดตถี่)
+  charge-output: ACTIONBAR
+  # ตั้งค่าหน้าตา bossbar (ใช้เมื่อ output หรือ charge-output = BOSSBAR)
+  bossbar:
+    # สี: PINK, BLUE, RED, GREEN, YELLOW, PURPLE, WHITE
+    color: YELLOW
+    # สไตล์: SOLID, SEGMENTED_6, SEGMENTED_10, SEGMENTED_12, SEGMENTED_20
+    style: SOLID
+    # ระยะเวลาแสดง bossbar ของข้อความ feedback ก่อนหายไป (tick, 20 tick = 1 วิ)
+    feedback-duration-ticks: 40
+
+# ระยะเวลา (tick) อย่างน้อยก่อนเริ่มตรวจการแตะพื้นเพื่อถอด Slow Falling
+slow-falling-ground-grace-ticks: 10
+
+# เปิด log ละเอียดเพื่อ debug
+debug: false

@@ -1,0 +1,25 @@
+name: PickMobUp
+version: '${version}'
+main: com.pickmobup.PickMobUpPlugin
+api-version: '1.20'
+folia-supported: true
+description: อุ้ม mob ขึ้นไปไว้บนหัวแล้วโยนออกไปแบบสลิงช็อต
+authors: [PickMobUp]
+softdepend:
+  - packetevents
+  - PacketEvents
+commands:
+  pickmobup:
+    description: คำสั่งหลักของ PickMobUp
+    aliases: [pmu]
+    usage: /pmu reload
+permissions:
+  pickmobup.use:
+    description: อนุญาตให้อุ้มและโยน entity
+    default: true
+  pickmobup.carryplayers:
+    description: อนุญาตให้อุ้มผู้เล่นคนอื่น
+    default: op
+  pickmobup.admin:
+    description: คำสั่งผู้ดูแล (reload)
+    default: op

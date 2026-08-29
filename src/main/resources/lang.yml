@@ -1,0 +1,32 @@
+# ===========================================================================
+#  PickMobUp - lang.yml
+#  ใช้รหัสสี & ได้ทุกบรรทัด | placeholder ที่รองรับระบุไว้ท้ายบรรทัด
+# ===========================================================================
+
+prefix: "&8[&bPickMobUp&8]&r "
+
+no-permission: "&cคุณไม่มีสิทธิ์ใช้งานสิ่งนี้"
+reload-success: "&aรีโหลดการตั้งค่าเรียบร้อยแล้ว"
+players-only: "&cคำสั่งนี้ใช้ได้เฉพาะผู้เล่นเท่านั้น"
+unknown-command: "&7ใช้: &f/pmu reload"
+
+# %entity% = ชื่อ entity
+pickup-success: "&aอุ้ม &e%entity% &aขึ้นมาแล้ว! ย่อแตะเพื่อวาง / กดค้างเพื่อโยน"
+already-carrying: "&cคุณกำลังอุ้มอะไรอยู่แล้ว"
+cannot-carry-entity: "&cไม่สามารถอุ้ม entity ชนิดนี้ได้"
+cannot-carry-players: "&cไม่สามารถอุ้มผู้เล่นได้"
+world-disabled: "&cใช้งานในโลกนี้ไม่ได้"
+entity-already-carried: "&centity ตัวนี้ถูกอุ้มอยู่แล้ว"
+
+place-success: "&aวาง entity ลงเรียบร้อย"
+
+# %power% = แรงโยนโดยประมาณ (บล็อค)
+throw-success: "&aโยนออกไปด้วยแรง &e%power% &aบล็อค!"
+throw-disabled: "&cระบบการโยนถูกปิดอยู่ จึงวางลงแทน"
+
+# %bar% = หลอดพลัง, %percent% = เปอร์เซ็นต์พลัง
+charge-bar: "&fแรงโยน &8[&r%bar%&8] &e%percent%&7%"
+# หมายเหตุ: สัญลักษณ์/สีของหลอดปรับด้านล่าง (%bar% จะถูกประกอบจากค่าเหล่านี้)
+charge-bar-symbol: "|"
+charge-bar-filled-color: "&a"
+charge-bar-empty-color: "&7"
