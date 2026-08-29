@@ -64,3 +64,7 @@ The output jar is at `build/libs/PickMobUp-<version>.jar` (already shaded — dr
 - Compiled to **Java 17** bytecode, so it runs on both 1.20.1 (Java 17) and 1.21.x (Java 21+)
 - Uses **FoliaLib** (shaded + relocated) to automatically switch schedulers between Bukkit and Folia region threads
 - Actionbar messages are sent via the BungeeCord Chat API, available on both Spigot and Paper
+
+## License
+
+Licensed under the [GNU General Public License v3.0](LICENSE).
