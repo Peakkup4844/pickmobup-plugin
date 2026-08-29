@@ -1,49 +1,66 @@
 # PickMobUp
 
-ปลั๊กอิน Minecraft สำหรับ **อุ้ม entity ขึ้นไว้บนหัว** แล้ว **โยนออกไปแบบสลิงช็อต**
+![Minecraft](https://img.shields.io/badge/Minecraft-1.20.1%E2%80%93latest-brightgreen)
+![Server](https://img.shields.io/badge/Server-Spigot%20%7C%20Paper%20%7C%20Folia-blue)
+![Java](https://img.shields.io/badge/Java-17%2B-orange)
 
-รองรับ **Spigot / Paper / Folia** ตั้งแต่ **1.20.1** ถึงเวอร์ชันล่าสุด (ทดสอบ build กับ 1.21.x)
+A Minecraft plugin that lets you **pick an entity up onto your head** and **launch it like a slingshot**.
 
-## วิธีเล่น
+Supports **Spigot / Paper / Folia** from **1.20.1** through the latest version (build-tested against 1.21.x).
 
-| การกระทำ | ผล |
+## Requirements
+
+- A Spigot / Paper / Folia server, version 1.20.1 or newer
+- Java 17 or newer
+- (Optional) [PacketEvents](https://github.com/retrooper/packetevents) — only needed when `mount-mode: PACKET` is selected
+
+## Installation
+
+1. Download or build `PickMobUp-<version>.jar` (see [Building](#building))
+2. Drop the file into your server's `plugins/` folder
+3. Restart the server — this generates `plugins/PickMobUp/config.yml` and `lang.yml` for you to edit
+4. Run `/pmu reload` to apply config changes without restarting
+
+## How to play
+
+| Action | Effect |
 |---|---|
-| **ย่อ (Sneak) + คลิกขวา** ที่ entity | อุ้มขึ้นมาไว้บนหัว |
-| **แตะ Shift สั้น ๆ** (ขณะอุ้ม) | วาง entity ลงตรงตำแหน่งที่ยืน |
-| **กด Shift ค้าง** (ขณะอุ้ม) | ชาร์จพลัง — หลอดวิ่งขึ้น-ลงบน actionbar |
-| **ปล่อย Shift** (ขณะชาร์จ) | โยน entity ไปทางที่เล็ง แรงตามค่าหลอด ณ จังหวะปล่อย |
+| **Sneak + right-click** an entity | Pick it up onto your head |
+| **Tap Shift briefly** (while carrying) | Set the entity down where you're standing |
+| **Hold Shift** (while carrying) | Charge power — a bar animates on the actionbar |
+| **Release Shift** (while charging) | Launch the entity toward your look direction, with force based on the charge at release |
 
-ระหว่าง entity ลอยอยู่จะติดสถานะ **Slow Falling** จนกว่าจะแตะพื้น
+While airborne, the entity gets **Slow Falling** until it touches the ground.
 
-## คำสั่ง / สิทธิ์
+## Commands / Permissions
 
-- `/pmu reload` — รีโหลด config และ lang (`pickmobup.admin`)
-- `pickmobup.use` — อุ้ม/โยนได้ (default: true)
-- `pickmobup.carryplayers` — อุ้มผู้เล่นได้ (default: op)
+- `/pmu reload` — reload config and lang files (`pickmobup.admin`)
+- `pickmobup.use` — can pick up/throw entities (default: true)
+- `pickmobup.carryplayers` — can pick up other players (default: op)
 
-## การตั้งค่า
+## Configuration
 
-- `config.yml` — โหมดอุ้ม, white/blacklist ชนิด entity, อุ้มผู้เล่นได้หรือไม่, โลกที่อนุญาต,
-  แรงโยนสูงสุด, ความเร็ว, เสียง ฯลฯ
-- `lang.yml` — ข้อความทั้งหมด (รหัสสี `&`)
+- `config.yml` — carry mode, entity type white/blacklist, whether players can be carried, allowed worlds,
+  max throw force, speed, sounds, etc.
+- `lang.yml` — all plugin messages (`&` color codes)
 
-### โหมดอุ้ม (`mount-mode`)
+### Carry mode (`mount-mode`)
 
-- `PASSENGER` *(แนะนำ)* — ใช้กลไก vanilla ไม่ต้องพึ่งปลั๊กอินเสริม
-- `PACKET` — แสดงผลด้วย packet (ต้องติดตั้งปลั๊กอิน **PacketEvents**)
-  หากไม่พบ PacketEvents จะ fallback กลับไปใช้ `PASSENGER` ให้อัตโนมัติ
+- `PASSENGER` *(recommended)* — uses vanilla mechanics, no extra plugin required
+- `PACKET` — renders via packets (requires the **PacketEvents** plugin)
+  Falls back to `PASSENGER` automatically if PacketEvents isn't found
 
-## การ build
+## Building
 
 ```bash
 ./gradlew build      # Linux / macOS
 gradlew.bat build    # Windows
 ```
 
-ไฟล์ผลลัพธ์อยู่ที่ `build/libs/PickMobUp-<version>.jar` (shaded แล้ว นำไปวางใน `plugins/` ได้เลย)
+The output jar is at `build/libs/PickMobUp-<version>.jar` (already shaded — drop it straight into `plugins/`).
 
-## หมายเหตุทางเทคนิค
+## Technical notes
 
-- คอมไพล์เป็น bytecode **Java 17** จึงรันได้ทั้งบน 1.20.1 (Java 17) และ 1.21.x (Java 21+)
-- ใช้ **FoliaLib** (shade + relocate) เพื่อสลับ scheduler ระหว่าง Bukkit และ Folia region threads อัตโนมัติ
-- actionbar ส่งผ่าน BungeeCord Chat API ที่มีอยู่ทั้งบน Spigot และ Paper
+- Compiled to **Java 17** bytecode, so it runs on both 1.20.1 (Java 17) and 1.21.x (Java 21+)
+- Uses **FoliaLib** (shaded + relocated) to automatically switch schedulers between Bukkit and Folia region threads
+- Actionbar messages are sent via the BungeeCord Chat API, available on both Spigot and Paper
