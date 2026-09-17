@@ -9,6 +9,8 @@ import com.pickmobup.listener.InteractListener;
 import com.pickmobup.listener.SneakListener;
 import com.pickmobup.message.MessageService;
 import com.tcoded.folialib.FoliaLib;
+import org.bukkit.World;
+import org.bukkit.entity.Entity;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -39,6 +41,16 @@ public final class PickMobUpPlugin extends JavaPlugin {
         pm.registerEvents(new InteractListener(carryManager), this);
         pm.registerEvents(new SneakListener(carryManager), this);
         pm.registerEvents(new CleanupListener(carryManager), this);
+
+        // Entities loaded before we enabled (e.g. spawn chunks) never fire EntitiesLoadEvent for us.
+        // Folia has no safe way to walk every region's entities from here; those recover on next load.
+        if (!foliaLib.isFolia()) {
+            for (World world : getServer().getWorlds()) {
+                for (Entity entity : world.getEntities()) {
+                    carryManager.recoverIfOrphaned(entity);
+                }
+            }
+        }
 
         PickMobUpCommand command = new PickMobUpCommand(this);
         if (getCommand("pickmobup") != null) {

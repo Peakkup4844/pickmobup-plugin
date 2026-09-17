@@ -11,9 +11,12 @@ import com.pickmobup.util.EntityUtil;
 import com.tcoded.folialib.impl.PlatformScheduler;
 import com.tcoded.folialib.wrapper.task.WrappedTask;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
@@ -39,8 +42,18 @@ public class CarryManager {
     private MountStrategy packetStrategy; // lazily created only if PacketEvents present
     private boolean warnedPacketMissing;
 
+    /**
+     * The entity's pre-carry AI/invulnerability, persisted on the entity itself so an
+     * entity saved mid-carry (chunk unloaded in PACKET mode, carried player quit, crash)
+     * is repaired the next time it loads instead of staying frozen and invulnerable.
+     */
+    private final NamespacedKey prevAiKey;
+    private final NamespacedKey prevInvulnKey;
+
     public CarryManager(PickMobUpPlugin plugin) {
         this.plugin = plugin;
+        this.prevAiKey = new NamespacedKey(plugin, "prev-ai");
+        this.prevInvulnKey = new NamespacedKey(plugin, "prev-invulnerable");
         this.scheduler = plugin.getFoliaLib().getScheduler();
         this.messages = plugin.messages();
     }
@@ -104,15 +117,20 @@ public class CarryManager {
         session.strategy = resolveStrategy();
         session.ignoreNextSneakRelease = true;
 
+        // Undo a stale mark first so we don't record the frozen state as the "previous" one.
+        recoverIfOrphaned(target);
+        PersistentDataContainer pdc = target.getPersistentDataContainer();
         if (cfg.disableAi() && !(target instanceof Player)) {
             LivingEntity le = (LivingEntity) target;
             session.aiChanged = true;
             session.prevAi = le.hasAI();
+            pdc.set(prevAiKey, PersistentDataType.BYTE, (byte) (session.prevAi ? 1 : 0));
             le.setAI(false);
         }
         if (cfg.invulnerable()) {
             session.invulnChanged = true;
             session.prevInvuln = target.isInvulnerable();
+            pdc.set(prevInvulnKey, PersistentDataType.BYTE, (byte) (session.prevInvuln ? 1 : 0));
             target.setInvulnerable(true);
         }
 
@@ -499,13 +517,45 @@ public class CarryManager {
     }
 
     private void applyRestore(CarrySession s, Entity e) {
+        PersistentDataContainer pdc = e.getPersistentDataContainer();
         if (s.aiChanged && e instanceof LivingEntity) {
             ((LivingEntity) e).setAI(s.prevAi);
+            pdc.remove(prevAiKey);
             s.aiChanged = false;
         }
         if (s.invulnChanged) {
             e.setInvulnerable(s.prevInvuln);
+            pdc.remove(prevInvulnKey);
             s.invulnChanged = false;
+        }
+    }
+
+    /**
+     * Restore an entity that still has the pre-carry mark but isn't being carried right
+     * now, i.e. it was saved to disk mid-carry. Call on the entity's own thread
+     * (entity load / player join / pickup).
+     */
+    public void recoverIfOrphaned(Entity e) {
+        PersistentDataContainer pdc = e.getPersistentDataContainer();
+        Byte prevAi = pdc.get(prevAiKey, PersistentDataType.BYTE);
+        Byte prevInvuln = pdc.get(prevInvulnKey, PersistentDataType.BYTE);
+        if (prevAi == null && prevInvuln == null) {
+            return;
+        }
+        for (CarrySession s : sessions.values()) {
+            if (s.entity == e) {
+                return; // this exact instance is live on someone's head
+            }
+        }
+        if (prevAi != null) {
+            if (e instanceof LivingEntity) {
+                ((LivingEntity) e).setAI(prevAi != 0);
+            }
+            pdc.remove(prevAiKey);
+        }
+        if (prevInvuln != null) {
+            e.setInvulnerable(prevInvuln != 0);
+            pdc.remove(prevInvulnKey);
         }
     }
 }
