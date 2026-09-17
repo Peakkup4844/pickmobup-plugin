@@ -47,6 +47,11 @@ processResources {
     }
 }
 
+// shadowJar takes over the unclassified jar name; the thin jar would otherwise overwrite it.
+jar {
+    enabled = false
+}
+
 shadowJar {
     archiveClassifier.set('')
     relocate 'com.tcoded.folialib', 'com.pickmobup.libs.folialib'

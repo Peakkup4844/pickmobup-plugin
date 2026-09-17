@@ -31,7 +31,7 @@ public final class PickMobUpPlugin extends JavaPlugin {
         reloadAll();
 
         PluginManager pm = getServer().getPluginManager();
-        this.packetEventsAvailable = pm.getPlugin("packetevents") != null || pm.getPlugin("PacketEvents") != null;
+        this.packetEventsAvailable = pm.isPluginEnabled("packetevents") || pm.isPluginEnabled("PacketEvents");
 
         this.messages = new MessageService(this);
         this.carryManager = new CarryManager(this);

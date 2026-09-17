@@ -16,16 +16,14 @@ public class InteractListener implements Listener {
         this.carryManager = carryManager;
     }
 
-    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
+    // HIGH so protection plugins get to cancel the click before we act on it.
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onInteractEntity(PlayerInteractEntityEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) {
             return; // avoid firing twice (off-hand)
         }
         Player player = event.getPlayer();
         if (!player.isSneaking()) {
-            return;
-        }
-        if (carryManager.isCarrying(player.getUniqueId())) {
             return;
         }
         if (carryManager.attemptPickup(player, event.getRightClicked())) {

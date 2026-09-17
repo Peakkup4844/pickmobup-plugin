@@ -9,6 +9,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Loads lang.yml and renders messages. Uses legacy '&' colour codes and sends
@@ -31,11 +34,19 @@ public class Lang {
             plugin.saveResource("lang.yml", false);
         }
         this.messages = YamlConfiguration.loadConfiguration(file);
+        // Fall back to the bundled lang.yml for keys missing from an older copy on disk.
+        InputStream bundled = plugin.getResource("lang.yml");
+        if (bundled != null) {
+            messages.setDefaults(YamlConfiguration.loadConfiguration(
+                    new InputStreamReader(bundled, StandardCharsets.UTF_8)));
+        }
         this.prefix = raw("prefix");
     }
 
     public String raw(String key) {
-        return messages.getString(key, key);
+        // getString(key) consults the defaults; getString(key, def) would bypass them.
+        String value = messages.getString(key);
+        return value != null ? value : key;
     }
 
     /** Apply replacements (pairs of placeholder, value) to a template. */

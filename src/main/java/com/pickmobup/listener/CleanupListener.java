@@ -17,6 +17,8 @@ public class CleanupListener implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         carryManager.drop(event.getPlayer());
+        // The quitting player may itself be carried: restore it before its data is saved.
+        carryManager.releaseCarried(event.getPlayer());
     }
 
     @EventHandler

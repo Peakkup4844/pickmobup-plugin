@@ -5,6 +5,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 import java.lang.reflect.Method;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -76,7 +77,7 @@ public final class EntityUtil {
     }
 
     private static String prettify(String raw) {
-        String[] parts = raw.toLowerCase().split("_");
+        String[] parts = raw.toLowerCase(Locale.ROOT).split("_");
         StringBuilder sb = new StringBuilder();
         for (String part : parts) {
             if (part.isEmpty()) {

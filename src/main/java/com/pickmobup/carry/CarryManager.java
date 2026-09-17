@@ -18,6 +18,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -153,7 +154,8 @@ public class CarryManager {
 
     public void onSneakPress(Player player) {
         CarrySession s = sessions.get(player.getUniqueId());
-        if (s == null) {
+        // A repeated press without a release (e.g. a modified client) must not schedule a second charge.
+        if (s == null || s.charging || s.pendingChargeTask != null) {
             return;
         }
         // Schedule entering charge mode once the tap-threshold elapses.
@@ -193,11 +195,11 @@ public class CarryManager {
     }
 
     private void beginCharge(Player player, CarrySession s) {
-        if (!cfg().throwEnabled()) {
-            return; // a later release will simply place the entity.
-        }
         s.charging = true;
         s.chargeStartMillis = System.currentTimeMillis();
+        if (!cfg().throwEnabled()) {
+            return; // no meter; the release places the entity with the "throw-disabled" notice.
+        }
         long period = cfg().chargeUpdateTicks();
         s.chargeTask = scheduler.runAtEntityTimer(player, () -> {
             if (sessions.get(player.getUniqueId()) != s || !s.charging || !player.isOnline()) {
@@ -208,7 +210,7 @@ public class CarryManager {
             }
             double frac = chargeFraction(s);
             messages.charge(player, frac, (int) Math.round(frac * 100));
-        }, 0L, period);
+        }, 1L, period); // Folia rejects an initial delay below one tick
     }
 
     private double chargeFraction(CarrySession s) {
@@ -225,6 +227,10 @@ public class CarryManager {
     // ---- place / throw ---------------------------------------------------
 
     public void place(Player player, CarrySession s) {
+        place(player, s, "place-success");
+    }
+
+    private void place(Player player, CarrySession s, String messageKey) {
         Entity e = s.entity;
         endSession(player, s);
 
@@ -241,14 +247,13 @@ public class CarryManager {
             }
         });
 
-        messages.feedback(player, "place-success");
+        messages.feedback(player, messageKey);
         cfg().playSound(player, "place");
     }
 
     public void throwEntity(Player player, CarrySession s) {
         if (!cfg().throwEnabled()) {
-            messages.feedback(player, "throw-disabled");
-            place(player, s);
+            place(player, s, "throw-disabled");
             return;
         }
 
@@ -280,7 +285,7 @@ public class CarryManager {
             EntityUtil.teleport(e, launch).whenComplete((ok, ex) -> applyThrow(e, velocity, applySlow));
         });
 
-        messages.feedback(player, "throw-success", "%power%", String.format("%.1f", power));
+        messages.feedback(player, "throw-success", "%power%", String.format(Locale.ROOT, "%.1f", power));
         cfg().playSound(player, "throw");
     }
 
@@ -291,7 +296,9 @@ public class CarryManager {
                 return;
             }
             e.setVelocity(velocity);
-            if (applySlow && e instanceof LivingEntity) {
+            // Leave an existing Slow Falling (e.g. from a potion) alone: the landing check would strip it.
+            if (applySlow && e instanceof LivingEntity
+                    && !((LivingEntity) e).hasPotionEffect(PotionEffectType.SLOW_FALLING)) {
                 LivingEntity le = (LivingEntity) e;
                 int maxTicks = cfg().slowFallingMaxTicks();
                 le.addPotionEffect(new PotionEffect(
@@ -334,14 +341,18 @@ public class CarryManager {
                 return;
             }
             Entity e = s.entity;
-            if (!player.isOnline() || e == null || e.isDead() || !e.isValid()) {
-                abort(player, s);
-                return;
-            }
             // Detect a mount broken externally (carrier changed world / was teleported,
             // or the passenger was ejected by another plugin) so we restore the entity's
             // AI/invulnerability and release the claim instead of orphaning it.
-            if (!s.strategy.isMounted(player, e)) {
+            boolean attached;
+            try {
+                attached = player.isOnline() && e != null && !e.isDead() && e.isValid()
+                        && s.strategy.isMounted(player, e);
+            } catch (Throwable offRegion) {
+                // Folia: the entity is owned by another region, so it can't still be on our head.
+                attached = false;
+            }
+            if (!attached) {
                 abort(player, s);
                 return;
             }
@@ -364,9 +375,11 @@ public class CarryManager {
     private void abort(Player player, CarrySession s) {
         Entity e = s.entity;
         endSession(player, s);
-        if (e != null && e.isValid() && player != null && player.isOnline()) {
+        if (e != null && player != null && player.isOnline()) {
             try {
-                s.strategy.dismount(player, e);
+                if (e.isValid()) {
+                    s.strategy.dismount(player, e);
+                }
             } catch (Throwable ignored) {
             }
         }
@@ -375,25 +388,42 @@ public class CarryManager {
 
     /** Player quit / died while carrying: drop the entity where they are. */
     public void drop(Player player) {
+        // Boss bars are tracked per player even when nothing is carried.
+        messages.clear(player);
         CarrySession s = sessions.get(player.getUniqueId());
         if (s == null) {
             return;
         }
         Entity e = s.entity;
         endSession(player, s);
-        messages.clear(player);
         try {
             s.strategy.dismount(player, e);
         } catch (Throwable ignored) {
         }
         restoreState(s);
-        if (e != null && e.isValid()) {
+        if (e != null) {
             Location loc = player.getLocation();
             scheduler.runAtEntity(e, task -> {
                 if (e.isValid()) {
                     EntityUtil.teleport(e, loc);
                 }
             });
+        }
+    }
+
+    /**
+     * A carried entity is leaving the world (e.g. a carried player quit): release it
+     * now, before its AI/invulnerability are saved to disk.
+     */
+    public void releaseCarried(Entity entity) {
+        if (!claimed.contains(entity.getUniqueId())) {
+            return;
+        }
+        for (CarrySession s : sessions.values()) {
+            if (s.entity != null && s.entity.getUniqueId().equals(entity.getUniqueId())) {
+                abort(plugin.getServer().getPlayer(s.carrierId), s);
+                return;
+            }
         }
     }
 
@@ -447,21 +477,34 @@ public class CarryManager {
 
     private void restoreState(CarrySession s) {
         Entity e = s.entity;
-        if (e == null) {
+        if (e == null || (!s.aiChanged && !s.invulnChanged)) {
             return;
         }
-        if (s.aiChanged && e instanceof LivingEntity) {
+        try {
+            applyRestore(s, e);
+        } catch (Throwable offRegion) {
+            // Folia: the entity may now be owned by another region than the caller's
+            // (e.g. left behind after the carrier teleported); retry on its own thread.
             try {
-                ((LivingEntity) e).setAI(s.prevAi);
+                scheduler.runAtEntity(e, task -> {
+                    try {
+                        applyRestore(s, e);
+                    } catch (Throwable ignored) {
+                    }
+                });
             } catch (Throwable ignored) {
+                // Plugin disabling: nothing more we can do.
             }
+        }
+    }
+
+    private void applyRestore(CarrySession s, Entity e) {
+        if (s.aiChanged && e instanceof LivingEntity) {
+            ((LivingEntity) e).setAI(s.prevAi);
             s.aiChanged = false;
         }
         if (s.invulnChanged) {
-            try {
-                e.setInvulnerable(s.prevInvuln);
-            } catch (Throwable ignored) {
-            }
+            e.setInvulnerable(s.prevInvuln);
             s.invulnChanged = false;
         }
     }

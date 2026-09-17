@@ -10,8 +10,9 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
@@ -28,9 +29,10 @@ public class PluginConfig {
     private boolean disableAi;
     private boolean invulnerable;
     private FilterMode filterMode;
-    private final Set<EntityType> filterList = new HashSet<>();
+    // Replaced wholesale on reload (never mutated) since Folia region threads read them concurrently.
+    private volatile Set<EntityType> filterList = Collections.emptySet();
     private boolean allowCarryPlayers;
-    private final Set<String> allowedWorlds = new HashSet<>();
+    private volatile Set<String> allowedWorlds = Collections.emptySet();
     private long tapThresholdMs;
     private boolean throwEnabled;
     private double maxPowerBlocks;
@@ -64,20 +66,22 @@ public class PluginConfig {
         this.invulnerable = c.getBoolean("invulnerable-while-carried", true);
 
         this.filterMode = parseEnum(c.getString("entity-filter.mode", "BLACKLIST"), FilterMode.class, FilterMode.BLACKLIST);
-        this.filterList.clear();
+        Set<EntityType> types = EnumSet.noneOf(EntityType.class);
         for (String raw : c.getStringList("entity-filter.list")) {
             EntityType type = parseEntityType(raw);
             if (type != null) {
-                filterList.add(type);
+                types.add(type);
             }
         }
+        this.filterList = types;
 
         this.allowCarryPlayers = c.getBoolean("allow-carry-players", false);
 
-        this.allowedWorlds.clear();
+        Set<String> worlds = new HashSet<>();
         for (String w : c.getStringList("allowed-worlds")) {
-            allowedWorlds.add(w.toLowerCase(Locale.ROOT));
+            worlds.add(w.toLowerCase(Locale.ROOT));
         }
+        this.allowedWorlds = worlds;
 
         this.tapThresholdMs = Math.max(0L, c.getLong("controls.sneak-tap-threshold-ms", 250L));
 
